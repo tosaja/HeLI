@@ -64,11 +64,11 @@ class HeLI {
 
 // this is the penalty value for unseen tokens
 
-	private static double gramsakko = 6.6;
+	private static double penalty = 6.6;
 	
 // This is the maximum length of used character n-grams (setting them to 0 gives the same outcome, but the identifier still divides the words)
 	
-	private static int maksimingram = 8;
+	private static int maximumlength = 8;
 
 	public static void main(String[] args) {
 		
@@ -127,7 +127,6 @@ class HeLI {
 
 			loadIn(usedcapwords, language, "CapWordModel");
 			loadIn(usedlowwords, language, "LowWordModel");
-//			System.out.println(usedlowwords + language + "lowword");
 		}
 
 		BufferedReader testfilereader = null;
@@ -147,11 +146,7 @@ class HeLI {
 					break;
 				}
 				
-//				String mysterytext = testline;
-				
-				String mysterytext = testline.split("\t")[0];
-				
-				mysterytext = " " + mysterytext + " ";
+				String mysterytext = testline;
 				
 				String identifiedLanguage = identifyText(mysterytext);
 
@@ -176,15 +171,14 @@ class HeLI {
 		
 		tempDict = HashBasedTable.create();
 	
-		String seuraava = null;
-		String pituustiedosto = null;
+		String nextmodel = null;
 
-		seuraava = "./Models/" + language + "." + tokentype;
+		nextmodel = "./Models/" + language + "." + tokentype;
 
-		double grampituus = 0;
-		double langamount = 0;
+		double modeltokentypeamount = 0;
+		double usedtokentypeamount = 0;
 
-		File file = new File(seuraava);
+		File file = new File(nextmodel);
 		BufferedReader reader = null;
 		try {
 			reader = new BufferedReader(new FileReader(file));
@@ -192,22 +186,22 @@ class HeLI {
 			String text = null;
 			
 			text = reader.readLine();
-			grampituus = Double.parseDouble(text);
+			modeltokentypeamount = Double.parseDouble(text);
 			
-			int laskuri = 0;
+			int tokencounter = 0;
 			while ((text = reader.readLine()) != null) {
 				String[] line = text.split("\t");
 				String gram = line[0];
 				long amount = Long.parseLong(line[1]);
 
-				if (laskuri < cutoff) {
+				if (tokencounter < cutoff) {
 					tempDict.put(gram, language, (double) amount);
-					langamount = langamount + (double) amount;
+					usedtokentypeamount = usedtokentypeamount + (double) amount;
 				}
 				else {
 					break;
 				}
-				laskuri++;
+				tokencounter++;
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -223,7 +217,7 @@ class HeLI {
 		}				
 
 		for (Cell<String, String, Double> cell: tempDict.cellSet()){
-			double probability = -Math.log10(cell.getValue() / langamount);
+			double probability = -Math.log10(cell.getValue() / usedtokentypeamount);
 			if (tokentype.equals("LowWordModel")) {
 				wordDictLow.put(cell.getRowKey(), language, probability);
 			}
@@ -243,215 +237,174 @@ class HeLI {
 
 	private static String identifyText(String mysteryText) {
 		
-//koko seuraava replace on turha haravointikäytössä
+//some extra characters included as alphabetical characters
 		mysteryText = mysteryText.replaceAll("[^\\p{L}\\p{M}′'’´ʹािीुूृेैोौंँः् া ি ী ু ূ ৃ ে ৈ ো ৌ।্্্я̄\\u07A6\\u07A7\\u07A8\\u07A9\\u07AA\\u07AB\\u07AC\\u07AD\\u07AE\\u07AF\\u07B0\\u0A81\\u0A82\\u0A83\\u0ABC\\u0ABD\\u0ABE\\u0ABF\\u0AC0\\u0AC1\\u0AC2\\u0AC3\\u0AC4\\u0AC5\\u0AC6\\u0AC7\\u0AC8\\u0AC9\\u0ACA\\u0ACB\\u0ACC\\u0ACD\\u0AD0\\u0AE0\\u0AE1\\u0AE2\\u0AE3\\u0AE4\\u0AE5\\u0AE6\\u0AE7\\u0AE8\\u0AE9\\u0AEA\\u0AEB\\u0AEC\\u0AED\\u0AEE\\u0AEF\\u0AF0\\u0AF1]", " ");
 
 		mysteryText = mysteryText.replaceAll("  *", " ");
-		
-		Boolean ensimmainensana = false;
-		
-		if (mysteryText.substring(0,1).equals(" ")) {
-			mysteryText = mysteryText.replaceAll("^ ", "");
-			ensimmainensana = true;
-		}
+		mysteryText = mysteryText.replaceAll("^ ", "");
+		mysteryText = mysteryText.replaceAll(" $", "");
 		
 		int strLength = mysteryText.length();
 		
 		if (strLength == 0) {
-			return("xx");
+			return("xxx");
 		}
 
-		Boolean viimeinensana = false;
-		
-		if (mysteryText.substring(strLength - 1, strLength).equals(" ")) {
-			mysteryText = mysteryText.replaceAll(" $", "");
-			viimeinensana = true;
-		}
+		String[] words = mysteryText.split(" ");
 
-		String[] sanat = mysteryText.split(" ");
-
-		List<String> sanalista = new ArrayList<String>();
+		double wordamount = 0;
 		
-		double sanamaara = 0;
+		Map<String, Double> languagescores = new HashMap();
 		
-		Map<String, Double> languagepisteet = new HashMap();
-		
-		ListIterator pisteiterator = languageList.listIterator();
-		while(pisteiterator.hasNext()) {
-			Object element = pisteiterator.next();
-			String pistelanguage = (String) element;
-			languagepisteet.put(pistelanguage, 0.0);
+		ListIterator languageiterator = languageList.listIterator();
+		while(languageiterator.hasNext()) {
+			Object element = languageiterator.next();
+			String language = (String) element;
+			languagescores.put(language, 0.0);
 		}
 		
-		sanamaara = 0;
-		double monesko = 0;
+		wordamount = 0;
 
-		String mysterytextmodified = "";
-
-		for (String ss : sanat) {
-			if (ss.length() > 0) {
-				monesko = monesko + 1;
-				sanamaara = sanamaara +1;
-				
-				if (monesko == 1) {
-					mysterytextmodified = ss;
-				}
-				else {
-					mysterytextmodified = mysterytextmodified + " " + ss;
-				}
-			}
-		}
-
-		String[] sanat2 = mysterytextmodified.split(" ");
-
-		monesko = 0;
+		for (String word : words) {
 		
-		for (String sana : sanat2) {
+			wordamount = wordamount +1;
 		
-			Boolean olisana = false;
+			Boolean wordscored = false;
 			
-			Map<String, Double> sanapisteet = new HashMap();
+			Map<String, Double> wordscores = new HashMap();
 			
-			monesko = monesko + 1;
-
-			if (usedcapwords > 0 && !olisana) {
-				String sanamod = sana.replaceAll("[^\\p{L}\\p{M}′'’ ]", "");
-				if (wordDictCap.containsRow(sanamod)) {
-					olisana = true;
-					pisteiterator = languageList.listIterator();
-					while(pisteiterator.hasNext()) {
-						Object element = pisteiterator.next();
-						String pistelanguage = (String) element;
-						if (wordDictCap.contains(sanamod,pistelanguage)) {
-							sanapisteet.put(pistelanguage, wordDictCap.get(sanamod,pistelanguage));
+			if (usedcapwords > 0 && !wordscored) {
+				if (wordDictCap.containsRow(word)) {
+					wordscored = true;
+					languageiterator = languageList.listIterator();
+					while(languageiterator.hasNext()) {
+						Object element = languageiterator.next();
+						String language = (String) element;
+						if (wordDictCap.contains(word,language)) {
+							wordscores.put(language, wordDictCap.get(word,language));
 						}
 						else {
-							sanapisteet.put(pistelanguage, gramsakko);
+							wordscores.put(language, penalty);
 						}
 					}
 				}
 			}
 
-			if (usedlowwords > 0 && !olisana) {
-				String sanamod = sana.replaceAll("[^\\p{L}\\p{M}′'’ ]", "");
-				sanamod = sanamod.toLowerCase();
-				if (wordDictLow.containsRow(sanamod)) {
-					olisana = true;
-					pisteiterator = languageList.listIterator();
-					while(pisteiterator.hasNext()) {
-						Object element = pisteiterator.next();
-						String pistelanguage = (String) element;
-						if (wordDictLow.contains(sanamod,pistelanguage)) {
-							sanapisteet.put(pistelanguage, wordDictLow.get(sanamod,pistelanguage));
+			if (usedlowwords > 0 && !wordscored) {
+				if (wordDictLow.containsRow(word.toLowerCase())) {
+					wordscored = true;
+					languageiterator = languageList.listIterator();
+					while(languageiterator.hasNext()) {
+						Object element = languageiterator.next();
+						String language = (String) element;
+						if (wordDictLow.contains(word.toLowerCase(),language)) {
+							wordscores.put(language, wordDictLow.get(word.toLowerCase(),language));
 						}
 						else {
-							sanapisteet.put(pistelanguage, gramsakko);
+							wordscores.put(language, penalty);
 						}
 					}
 				}
 			}
 
-			if (!olisana) {
-				pisteiterator = languageList.listIterator();
-				while(pisteiterator.hasNext()) {
-					Object element = pisteiterator.next();
-					String pistelanguage = (String) element;
-					sanapisteet.put(pistelanguage, 0.0);
+			if (!wordscored) {
+				languageiterator = languageList.listIterator();
+				while(languageiterator.hasNext()) {
+					Object element = languageiterator.next();
+					String language = (String) element;
+					wordscores.put(language, 0.0);
 				}
 			}
-			sana = " " + sana + " ";
+			
+			word = " " + word + " ";
 
-
-			int t = maksimingram;
+			int t = maximumlength;
 			while (t > 0) {
-				if (olisana) {
+				if (wordscored) {
 					break;
 				}
 				else {
-					int pituus = sana.length();
 					int x = 0;
-					int grammaara = 0;
-					if (pituus > (t-1)) {
-						while (x < pituus - t + 1) {
-							String gram = sana.substring(x,x+t);
+					int gramamount = 0;
+					if (word.length() > (t-1)) {
+						while (x < word.length() - t + 1) {
+							String gram = word.substring(x,x+t);
 							if (gramDictCap.containsRow(gram)) {
-								grammaara = grammaara + 1;
-								olisana = true;
+								gramamount = gramamount + 1;
+								wordscored = true;
 								
-								pisteiterator = languageList.listIterator();
-								while(pisteiterator.hasNext()) {
-									Object element = pisteiterator.next();
-									String pistelanguage = (String) element;
-									if (gramDictCap.contains(gram,pistelanguage)) {
-										sanapisteet.put(pistelanguage, (sanapisteet.get(pistelanguage)+gramDictCap.get(gram,pistelanguage)));
+								languageiterator = languageList.listIterator();
+								while(languageiterator.hasNext()) {
+									Object element = languageiterator.next();
+									String language = (String) element;
+									if (gramDictCap.contains(gram,language)) {
+										wordscores.put(language, (wordscores.get(language)+gramDictCap.get(gram,language)));
 									}
 									else {
-										sanapisteet.put(pistelanguage, (sanapisteet.get(pistelanguage)+gramsakko));
+										wordscores.put(language, (wordscores.get(language)+penalty));
 									}
 								}
 							}
 							x = x + 1;
 						}
 					}
-					if (olisana) {
-						pisteiterator = languageList.listIterator();
-						while(pisteiterator.hasNext()) {
-							Object element = pisteiterator.next();
-							String pistelanguage = (String) element;
-							sanapisteet.put(pistelanguage, (sanapisteet.get(pistelanguage)/grammaara));
+					if (wordscored) {
+						languageiterator = languageList.listIterator();
+						while(languageiterator.hasNext()) {
+							Object element = languageiterator.next();
+							String language = (String) element;
+							wordscores.put(language, (wordscores.get(language)/gramamount));
 						}
 					}
 				}
 				t = t -1 ;
 			}
 
-			if (!olisana) {
-				pisteiterator = languageList.listIterator();
-				while(pisteiterator.hasNext()) {
-					Object element = pisteiterator.next();
-					String pistelanguage = (String) element;
-					sanapisteet.put(pistelanguage, 0.0);
+			if (!wordscored) {
+				languageiterator = languageList.listIterator();
+				while(languageiterator.hasNext()) {
+					Object element = languageiterator.next();
+					String language = (String) element;
+					wordscores.put(language, 0.0);
 				}
 			}
 			
-			t = maksimingram;
+			t = maximumlength;
 			while (t > 0) {
-				if (olisana) {
+				if (wordscored) {
 					break;
 				}
 				else {
-					int pituus = sana.length();
-					String sanamod = sana.toLowerCase();
 					int x = 0;
-					int grammaara = 0;
-					if (pituus > (t-1)) {
-						while (x < pituus - t + 1) {
-							String gram = sanamod.substring(x,x+t);
+					int gramamount = 0;
+					if (word.length() > (t-1)) {
+						while (x < word.length() - t + 1) {
+							String gram = word.toLowerCase().substring(x,x+t);
 							if (gramDictLow.containsRow(gram)) {
-								grammaara = grammaara + 1;
-								olisana = true;
+								gramamount = gramamount + 1;
+								wordscored = true;
 								
-								pisteiterator = languageList.listIterator();
-								while(pisteiterator.hasNext()) {
-									Object element = pisteiterator.next();
-									String pistelanguage = (String) element;
-									if (gramDictLow.contains(gram,pistelanguage)) {
-										sanapisteet.put(pistelanguage, (sanapisteet.get(pistelanguage)+gramDictLow.get(gram,pistelanguage)));
+								languageiterator = languageList.listIterator();
+								while(languageiterator.hasNext()) {
+									Object element = languageiterator.next();
+									String language = (String) element;
+									if (gramDictLow.contains(gram,language)) {
+										wordscores.put(language, (wordscores.get(language)+gramDictLow.get(gram,language)));
 									}
 									else {
-										sanapisteet.put(pistelanguage, (sanapisteet.get(pistelanguage)+gramsakko));
+										wordscores.put(language, (wordscores.get(language)+penalty));
 									}
 								}
 							}
 							x = x + 1;
 						}
 					}
-					if (olisana) {
-						pisteiterator = languageList.listIterator();
-						while(pisteiterator.hasNext()) {
-							Object element = pisteiterator.next();
-							String pistelanguage = (String) element;
-							sanapisteet.put(pistelanguage, (sanapisteet.get(pistelanguage)/grammaara));
+					if (wordscored) {
+						languageiterator = languageList.listIterator();
+						while(languageiterator.hasNext()) {
+							Object element = languageiterator.next();
+							String language = (String) element;
+							wordscores.put(language, (wordscores.get(language)/gramamount));
 						}
 					}
 				}
@@ -459,32 +412,32 @@ class HeLI {
 			}			
 			
 			
-			pisteiterator = languageList.listIterator();
-			while(pisteiterator.hasNext()) {
-				Object element = pisteiterator.next();
-				String pistelanguage = (String) element;
-				languagepisteet.put(pistelanguage, (languagepisteet.get(pistelanguage) + sanapisteet.get(pistelanguage)));
+			languageiterator = languageList.listIterator();
+			while(languageiterator.hasNext()) {
+				Object element = languageiterator.next();
+				String language = (String) element;
+				languagescores.put(language, (languagescores.get(language) + wordscores.get(language)));
 			}
 
 		}
 		
-		String voittaja = "xx";
-		languagepisteet.put(voittaja, 7.0);
+		String mysterylanguage = "xxx";
+		languagescores.put(mysterylanguage, penalty+1);
 		
-		Double pienin = gramsakko + 1;
+		Double winningscore = penalty + 1;
 		
-		pisteiterator = languageList.listIterator();
-		while(pisteiterator.hasNext()) {
-			Object element = pisteiterator.next();
-			String pistelanguage = (String) element;
+		languageiterator = languageList.listIterator();
+		while(languageiterator.hasNext()) {
+			Object element = languageiterator.next();
+			String language = (String) element;
 			
-			languagepisteet.put(pistelanguage, (languagepisteet.get(pistelanguage)/sanamaara));
-			if (languagepisteet.get(element) < pienin) {
-				pienin = languagepisteet.get(element);
-				voittaja = pistelanguage;
+			languagescores.put(language, (languagescores.get(language)/wordamount));
+			if (languagescores.get(element) < winningscore) {
+				winningscore = languagescores.get(element);
+				mysterylanguage = language;
 			}
 		}
 
-		return (voittaja);
+		return (mysterylanguage);
 	}
 }
