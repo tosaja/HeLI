@@ -10,3 +10,5 @@ If you are using the identifier on scientific work, please refer to the followin
   address   = {Osaka, Japan},  
   year      = {2016}
 }
+
+The HeLI identifier uses the Google guava library. You have to download it from: "https://github.com/google/guava" and add it yo your classpath.
