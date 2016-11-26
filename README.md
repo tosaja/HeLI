@@ -11,7 +11,7 @@ If you are using the identifier on scientific work, please refer to the followin
   year      = {2016}
 }
 
-The HeLI identifier uses the Google guava library. You have to download it from: "https://github.com/google/guava" and add it yo your classpath.
+The HeLI identifier uses the Google guava library. You have to download it from: "https://github.com/google/guava" and add it to your classpath.
 
 Place the training files in a "Training" folder, each with a file ending ".train". The filename before ".train" is used as the language identification code. Create an empty folder named "Models".
 
