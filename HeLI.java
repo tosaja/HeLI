@@ -135,7 +135,7 @@ class HeLI {
 //		The file to be tested is put into the Test directory. No empty lines on the file.
 //		File testfile = new File("./Test/test.txt");
 
-		File testfile = new File("./gold/A.txt");
+		File testfile = new File("./Test/test.txt");
 
 		try {
 			testfilereader = new BufferedReader(new FileReader(testfile));
