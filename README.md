@@ -17,4 +17,4 @@ Place the training files in a "Training" folder, each with a file ending ".train
 
 Run the "createmodels" program. If you have large training files this might take a long time. I use a parallelized version so that training files are processed at the same time (if you need this you have to modify the program, or you could ask me to do it).
 
-Place the text file to be identified in a "Test" folder under the name "test.txt". Tun the "HeLI" program. It will read the "test.txt" file line by line and print the same lines plus tab and the language identification code.
+Place the text file to be identified in a "Test" folder under the name "test.txt". Run the "HeLI" program. It will read the "test.txt" file line by line and print the same lines plus tab and the language identification code.
