@@ -15,7 +15,7 @@ The HeLI identifier uses the Google guava library. You have to download it from:
 
 Place the training files in a "Training" folder, each with a file ending ".train". The filename before ".train" is used as the language identification code. Create an empty folder named "Models".
 
-We read the file languagelist which includes list of the languages to be included in the repertoire of the language identifier. You can use "ls -la Models/ | egrep 'Model' | gawk '{print $9}' | sed 's/\..*//' | sort | uniq > languagelist" to include all the languages which have models in the Models directory.
+We read the file languagelist which includes list of the languages to be included in the repertoire of the language identifier. You can use `ls -la Models/ | egrep 'Model' | gawk '{print $9}' | sed 's/\..*//' | sort | uniq > languagelist` to include all the languages which have models in the Models directory.
 
 Run the "createmodels" program. If you have large training files this might take a long time. I use a parallelized version so that training files are processed at the same time (if you need this you have to modify the program, or you could ask me to do it).
 
