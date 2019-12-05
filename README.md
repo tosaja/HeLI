@@ -13,6 +13,8 @@ If you are using the identifier on scientific work, please refer to the followin
 
 The HeLI identifier uses the Google guava library. You have to download it from: "https://github.com/google/guava" and add it to your classpath. The identifier has been tested only in a linux/unix environment.
 
+You can also download the guava from maven.org: https://repo1.maven.org/maven2/com/google/guava/guava/23.0/guava-23.0.jar
+
 Place the training files in a "Training" folder, each with a file ending ".train". The filename before ".train" is used as the language identification code. Create an empty folder named "Models".
 
 We read the file languagelist which includes list of the languages to be included in the repertoire of the language identifier. You can use `ls -la Models/ | egrep 'Model' | gawk '{print $9}' | sed 's/\..*//' | sort | uniq > languagelist` to include all the languages which have models in the Models directory.
